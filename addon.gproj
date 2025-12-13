@@ -1,0 +1,8 @@
+GameProject {
+ ID "UNITAFReforged"
+ GUID "671B08ED53D5F63C"
+ TITLE "UNITAF-Reforged"
+ Dependencies {
+  "58D0FB3206B6F859"
+ }
+}
