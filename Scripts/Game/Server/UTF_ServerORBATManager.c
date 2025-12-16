@@ -48,7 +48,7 @@ class ServerORBATManager
 		m_cache.Set(orbatID, data);
 		
 		// @TODO: memoise data and separate this call?
-		ApplyORBAT(data);
+		// ApplyORBATtoPlayer(data);
 	}
 	
 	ORBATData ParseORBAT(SCR_JsonLoadContext ctx)
@@ -67,7 +67,7 @@ class ServerORBATManager
 		// Handle slots
 		// @TODO: Handle slots
 		for (int i = 0; i < metadata.slotsCount; i++) {
-			SCR_JsonLoadContext slotCtx = ctx.StartArray("slots", i); // PROBABLY WRONG
+			SCR_JsonLoadContext slotCtx = ctx.StartArray(i); // PROBABLY WRONG
 			SlotData slot = new SlotData();
 			slot.playerGameID = slotCtx.ReadString("playerGameID");
 			slot.playerUTFName = slotCtx.ReadString("playerUTFName");
@@ -78,4 +78,14 @@ class ServerORBATManager
 		
 	}
 	
+	void ApplyORBATtoPlayer(PlayerController pc)
+	{
+		// @TODO: implement player ORBAT assignment
+	}	
+
+	void ApplyORBATtoAll(ORBATData data, bool nearRPrequired = true)
+	{
+		// @TODO: implement all-players ORBAT assignment
+		// e.g. forced reset
+	}
 }
