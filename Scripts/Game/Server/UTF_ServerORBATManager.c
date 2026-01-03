@@ -1,27 +1,54 @@
+class LoadoutData : JsonApiStruct
+{
+	// @TODO: figure out loadout structure
+	void LoadoutData()
+	{
+		
+	}
+}
+
+class PlayerData : JsonApiStruct
+{
+	string playerUID;
+	string playerUTFName;
+
+	void PlayerData()
+	{
+		RegV("playerUID");
+		RegV("playerUTFName");
+	}
+}
+
 class SlotData : JsonApiStruct
 {
-	string playerGameID;
-	string playerUTFName;
 	string callSign;
 	string role;
-	string loadoutID;
+	bool isMA;
+	int tierDifference;
+	bool isLocked;
+	bool isVacant;
+	PlayerData player;
+	LoadoutData loadout;
 
 	void SlotData()
     {
-		RegV("playerGameID");
-		RegV("playerUTFName");
 		RegV("callSign");
 		RegV("role");
-		RegV("loadoutID");
+		RegV("isMA");
+		RegV("tierDifference");
+		RegV("isLocked");
+		RegV("isVacant");
+		RegV("player");
+		RegV("loadout");
     }
 }
 
 class CallSignData : JsonApiStruct
 {
 	string callSign;
-	double primaryFrequency;
-	double secondaryFrequency;
-	double pogoFrequency;
+	float secondaryFrequency;
+	float pogoFrequency;
+	float primaryFrequency;
 	array<ref CallSignData> subordinateCallsigns;
 
 	void CallSignData()
@@ -36,14 +63,15 @@ class CallSignData : JsonApiStruct
 
 class Metadata : JsonApiStruct
 {
+	string orbatID;
 	string missionName;
-	int slotsCount;
 	string description;
 	string intelligenceOfficer;
 	string fieldLeader;
 
 	void Metadata()
 	{
+		RegV("orbatID");
 		RegV("missionName");
 		RegV("slotsCount");
 		RegV("description");
@@ -54,16 +82,12 @@ class Metadata : JsonApiStruct
 
 class ORBATData : JsonApiStruct
 {
-	// @TODO: decide if ORBAT ID needs to be string
-	// "felt" like it when concatenating URLs but unsure
-	string orbatID;
 	Metadata metadata;
 	array<ref SlotData> slots;
 	array<ref CallSignData> callSigns;
 	
 	void ORBATData()
 	{
-		RegV("orbatID");
 		RegV("metadata");
 		RegV("slots");
 		RegV("callSigns");
@@ -74,12 +98,13 @@ class ORBATData : JsonApiStruct
 class ServerORBATManager
 {
 	ref UTF_HTTPService m_http;
-	ref map<string, ref ORBATData> m_cache;
+	ref map<int, ref ORBATData> m_cache;
+	ref int m_orbatID;
 
 	void ServerORBATManager(UTF_HTTPService http)
 	{
 		m_http = http;
-		m_cache = new map<string, ref ORBATData>;
+		m_cache = new map<int, ref ORBATData>;
 	}
 
 	// Fetch ORBAT data from remote service
@@ -103,32 +128,58 @@ class ServerORBATManager
 		m_cache.Set(orbatID, data);
 	}
 
-	ORBATData ParseORBAT(SCR_JsonLoadContext ctx)
+	static bool ParseORBAT(string json, out ORBATData outOrbat)
 	{
-		ORBATData data = new ORBATData();
-		data.orbatID = ctx.ReadString("orbatID");
-		data.slots = new array<ref SlotData>();
-		data.callSigns = new array<ref CallSignData>();
-		data.metadata = new Metadata();
+		SCR_JsonLoadContext ctx = new SCR_JsonLoadContext();
+		if (!ctx.ImportFromString(json))
+			return false;
 
-		// Handle metadata
-		// @TODO: figure out what metadata to include from endpoint
-		string name;
-		ctx.ReadString("name", name);
-		data.metadata.Set("name", name);
-		data.metadata.Set("slotsCount", slotsCount);
+		outOrbat = new ORBATData();
 
-		// Handle slots
-		// @TODO: Handle slots
-		for (int i = 0; i < metadata.slotsCount; i++) {
-			SCR_JsonLoadContext slotCtx = ctx.StartArray(i); // PROBABLY WRONG
-			SlotData slot = new SlotData();
-			slot.playerGameID = slotCtx.ReadString("playerGameID");
-			slot.playerUTFName = slotCtx.ReadString("playerUTFName");
-			slot.callSign = slotCtx.ReadString("callSign");
-			data.slots.Insert(slot);
+		if (ctx.DoesObjectExist("metadata"))
+		{
+			ctx.StartObject("metadata");
+			ParseMetadata(ctx, outOrbat.metadata);
+			ctx.EndObject();
 		}
 
+		if (ctx.DoesKeyExist("slots"))
+		{
+			ctx.StartArray("slots");
+
+			for (int i = 0; i < slots.Count(); i++)
+			{
+				ctx.StartObject();
+
+				SlotData slot = new SlotData();
+				ParseSlot(ctx, slot);
+				outOrbat.slots.Insert(slot);
+
+				ctx.EndObject();
+			}
+
+			ctx.EndArray();
+		}
+
+		if (ctx.DoesKeyExist("callSigns"))
+		{
+			ctx.StartArray("callSigns");
+
+			for (int i = 0; i < callSigns.Count(); i++)
+			{
+				ctx.StartObject();
+
+				CallSignData cs = new CallSignData();
+				ParseCallSign(ctx, cs);
+				outOrbat.callSigns.Insert(cs);
+
+				ctx.EndObject();
+			}
+
+			ctx.EndArray();
+		}
+
+		return true;
 	}
 
 	void ApplyORBATtoPlayer(int playerID)
@@ -136,6 +187,7 @@ class ServerORBATManager
 		// @TODO: implement player ORBAT assignment
 		// mostly pseudocode:
 		string playerGameID = BackendApi.GetPlayerIdentityId(playerID);
+
 	}
 
 	void ApplyORBATtoAll(ORBATData data, bool nearRPrequired = true)
