@@ -65,7 +65,8 @@ class Metadata : JsonApiStruct
 {
 	string orbatID;
 	string missionName;
-	string description;
+	string startTime;
+	string factionId;
 	string intelligenceOfficer;
 	string fieldLeader;
 
@@ -73,8 +74,8 @@ class Metadata : JsonApiStruct
 	{
 		RegV("orbatID");
 		RegV("missionName");
-		RegV("slotsCount");
-		RegV("description");
+		RegV("startTime");
+		RegV("factionId");
 		RegV("intelligenceOfficer");
 		RegV("fieldLeader");
 	}
@@ -82,6 +83,7 @@ class Metadata : JsonApiStruct
 
 class ORBATData : JsonApiStruct
 {
+	int orbatID;
 	Metadata metadata;
 	array<ref SlotData> slots;
 	array<ref CallSignData> callSigns;
