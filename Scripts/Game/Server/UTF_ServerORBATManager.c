@@ -1,18 +1,33 @@
-class SlotData : JsonApiStruct
+class PlayerData : JsonApiStruct
 {
 	string playerGameID;
 	string playerUTFName;
+	int playerUTFid;
+
+	void PlayerData()
+	{
+		RegV("playerGameID");
+		RegV("playerUTFName");
+		RegV("playerUTFid");
+	}
+}
+class SlotData : JsonApiStruct
+{
+	PlayerData player;
 	string callSign;
 	string role;
 	string loadoutID;
+	bool isMA;
+	int tierDiff;
 
 	void SlotData()
     {
-		RegV("playerGameID");
-		RegV("playerUTFName");
+		RegV("player");
 		RegV("callSign");
 		RegV("role");
 		RegV("loadoutID");
+		RegV("isMA");
+		RegV("tierDiff");
     }
 }
 
@@ -37,16 +52,16 @@ class CallSignData : JsonApiStruct
 class Metadata : JsonApiStruct
 {
 	string missionName;
-	int slotsCount;
-	string description;
+	string startTime;
+	string factionId;
 	string intelligenceOfficer;
 	string fieldLeader;
 
 	void Metadata()
 	{
 		RegV("missionName");
-		RegV("slotsCount");
-		RegV("description");
+		RegV("startTime");
+		RegV("factionId");
 		RegV("intelligenceOfficer");
 		RegV("fieldLeader");
 	}
@@ -54,9 +69,7 @@ class Metadata : JsonApiStruct
 
 class ORBATData : JsonApiStruct
 {
-	// @TODO: decide if ORBAT ID needs to be string
-	// "felt" like it when concatenating URLs but unsure
-	string orbatID;
+	int orbatID;
 	Metadata metadata;
 	array<ref SlotData> slots;
 	array<ref CallSignData> callSigns;
