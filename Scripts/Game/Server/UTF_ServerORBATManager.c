@@ -49,6 +49,16 @@ class UTF_ServerORBATManager
 	{
 		outOrbat = new UTF_ORBATData();
 
+        ctx.ReadValue("orbatID", outOrbat.orbatID);
+        ctx.ReadValue("revision", outOrbat.revision);
+        ctx.ReadValue("lastUpdate", outOrbat.lastUpdate);
+        ctx.ReadValue("startTime", outOrbat.startTime);
+        ctx.ReadValue("missionName", outOrbat.missionName);
+        ctx.ReadValue("factionId", outOrbat.factionId);
+        ctx.ReadValue("fieldLeader", outOrbat.fieldLeader);
+        ctx.ReadValue("intelligenceOfficer", outOrbat.intelligenceOfficer);
+        ctx.ReadValue("serverAdmin", outOrbat.serverAdmin);
+
 		if (ctx.DoesObjectExist("metadata"))
 		{
 			ctx.StartObject("metadata");
@@ -86,9 +96,32 @@ class UTF_ServerORBATManager
         return true;
     }
 	
-	bool UTF_ParsePlayer(SCR_JsonLoadContext ctx, out UTF_PlayerData outPlayer);
+    bool UTF_ParsePlayer(SCR_JsonLoadContext ctx, out UTF_PlayerData outPlayer)
+    {
+        outPlayer = new UTF_PlayerData();
+        if (!outPlayer)
+            return false;
+
+        ctx.ReadValue("reforgerUID", outPlayer.playerReforgerUID);
+        ctx.ReadValue("steamUID", outPlayer.playerSteamUID);
+        ctx.ReadValue("UTFID", outPlayer.playerUTFID);
+        ctx.ReadValue("UTFName", outPlayer.playerUTFName);
+        ctx.ReadValue("rank", outPlayer.playerRank);
+
+        return true;
+    }
 	
-	bool UTF_ParseRole(SCR_JsonLoadContext ctx, out UTF_RoleData outRole);
+    bool UTF_ParseRole(SCR_JsonLoadContext ctx, out UTF_RoleData outRole)
+    {
+        outRole = new UTF_RoleData();
+        if (!outRole)
+            return false;
+
+        ctx.ReadValue("roleName", outRole.roleName);
+        ctx.ReadValue("roleID", outRole.roleID);
+
+        return true;
+    }
 
     bool UTF_ParseSlot(SCR_JsonLoadContext ctx, out UTF_SlotData outSlot)
     {
@@ -99,8 +132,20 @@ class UTF_ServerORBATManager
             return false;
         }
 
-        ctx.ReadValue("player", outSlot.player);
-        ctx.ReadValue("role", outSlot.role);
+        if (ctx.DoesObjectExist("player"))
+        {
+            ctx.StartObject("player");
+            UTF_ParsePlayer(ctx, outSlot.player);
+            ctx.EndObject();
+        }
+
+        if (ctx.DoesObjectExist("role"))
+        {
+            ctx.StartObject("role");
+            UTF_ParseRole(ctx, outSlot.role);
+            ctx.EndObject();
+        }
+        
         ctx.ReadValue("isMA", outSlot.isMA);
         ctx.ReadValue("tierDifference", outSlot.tierDifference);
         ctx.ReadValue("isLocked", outSlot.isLocked);
@@ -153,6 +198,9 @@ class UTF_ServerORBATManager
 			ctx.EndArray();
 		}
 	}
+
+
+    // v Probably violates SRP v 
 
 	void ApplyORBATtoPlayer(int playerID)
 	{

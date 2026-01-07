@@ -74,7 +74,7 @@ class UTF_GroupData : JsonApiStruct
 
 class UTF_Metadata : JsonApiStruct
 {
-    // @TODO: decide if any UTF_metadata makes sense to include
+    // @TODO: decide if any metadata makes sense to include
 	void UTF_Metadata()
 	{
 	}
