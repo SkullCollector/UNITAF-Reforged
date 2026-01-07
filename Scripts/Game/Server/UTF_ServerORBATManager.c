@@ -1,200 +1,170 @@
-class LoadoutData : JsonApiStruct
-{
-	// @TODO: figure out loadout structure
-	void LoadoutData()
-	{
-		
-	}
-}
-
-class PlayerData : JsonApiStruct
-{
-	string playerUID;
-	string playerUTFName;
-
-	void PlayerData()
-	{
-		RegV("playerUID");
-		RegV("playerUTFName");
-	}
-}
-
-class SlotData : JsonApiStruct
-{
-	string callSign;
-	string role;
-	bool isMA;
-	int tierDifference;
-	bool isLocked;
-	bool isVacant;
-	PlayerData player;
-	LoadoutData loadout;
-
-	void SlotData()
-    {
-		RegV("callSign");
-		RegV("role");
-		RegV("isMA");
-		RegV("tierDifference");
-		RegV("isLocked");
-		RegV("isVacant");
-		RegV("player");
-		RegV("loadout");
-    }
-}
-
-class CallSignData : JsonApiStruct
-{
-	string callSign;
-	float secondaryFrequency;
-	float pogoFrequency;
-	float primaryFrequency;
-	array<ref CallSignData> subordinateCallsigns;
-
-	void CallSignData()
-	{
-		RegV("callSign");
-		RegV("subordinateCallsigns");
-		RegV("primaryFrequency");
-		RegV("secondaryFrequency");
-		RegV("pogoFrequency");
-	}
-}
-
-class Metadata : JsonApiStruct
-{
-	string orbatID;
-	string missionName;
-	string startTime;
-	string factionId;
-	string intelligenceOfficer;
-	string fieldLeader;
-
-	void Metadata()
-	{
-		RegV("orbatID");
-		RegV("missionName");
-		RegV("startTime");
-		RegV("factionId");
-		RegV("intelligenceOfficer");
-		RegV("fieldLeader");
-	}
-}
-
-class ORBATData : JsonApiStruct
-{
-	int orbatID;
-	Metadata metadata;
-	array<ref SlotData> slots;
-	array<ref CallSignData> callSigns;
-	
-	void ORBATData()
-	{
-		RegV("metadata");
-		RegV("slots");
-		RegV("callSigns");
-	}
-}
-
-
-class ServerORBATManager
+class UTF_ServerORBATManager
 {
 	ref UTF_HTTPService m_http;
-	ref map<int, ref ORBATData> m_cache;
-	ref int m_orbatID;
+	ref UTF_ORBATData m_orbat;
+	ref UTF_ORBATGetCallback m_cb;
 
-	void ServerORBATManager(UTF_HTTPService http)
+	void UTF_ServerORBATManager(UTF_HTTPService http)
 	{
 		m_http = http;
-		m_cache = new map<int, ref ORBATData>;
 	}
 
+    UTF_ORBATData GetORBAT()
+    {
+        return m_orbat;
+    }
+
 	// Fetch ORBAT data from remote service
-	// @TODO: 	separating individual slot fetches after initial ORBAT structure
-	// 			to reduce JSON container size (because of large loadout data)
-	void FetchORBAT(string orbatID)
+	void UTF_FetchORBAT(int orbatID)
 	{
 		// @TODO: clarify actual API format
 		string url = string.Format("%1/api/orbat/%2", "http:\/\/localhost:3000", orbatID);
-		ORBATGetCallback cb = new ORBATGetCallback(this, orbatID);
-		m_http.ExecuteGet(url, cb);
+		m_cb = new UTF_ORBATGetCallback(this, orbatID);
+		m_http.ExecuteGet(url, m_cb);
 	}
 
-	void OnOrbatJson(string orbatID, string json)
-	{
-		SCR_JsonLoadContext ctx = new SCR_JsonLoadContext;
-		ctx.LoadString(json);
-
-		ORBATData data = ParseORBAT(ctx);
-		data.orbatID = orbatID;
-		m_cache.Set(orbatID, data);
-	}
-
-	static bool ParseORBAT(string json, out ORBATData outOrbat)
+	void UTF_OnOrbatJson(int orbatID, string json)
 	{
 		SCR_JsonLoadContext ctx = new SCR_JsonLoadContext();
 		if (!ctx.ImportFromString(json))
-			return false;
+		{
+			Print("[ORBAT] Failed to import JSON");
+			return;
+		}
+	
+		UTF_ORBATData data;
+		if (!UTF_ParseORBAT(ctx, data))
+		{
+			Print("[ORBAT] Failed to parse ORBAT");
+			return;
+		}
+	
+		data.orbatID = orbatID;
+		m_orbat = data;
+	
+		PrintFormat("[ORBAT] ORBAT %1 loaded successfully", orbatID);
+	}
 
-		outOrbat = new ORBATData();
+	bool UTF_ParseORBAT(SCR_JsonLoadContext ctx, out UTF_ORBATData outOrbat)
+	{
+		outOrbat = new UTF_ORBATData();
 
 		if (ctx.DoesObjectExist("metadata"))
 		{
 			ctx.StartObject("metadata");
-			ParseMetadata(ctx, outOrbat.metadata);
+			UTF_ParseMetadata(ctx, outOrbat.metadata);
 			ctx.EndObject();
 		}
 
-		if (ctx.DoesKeyExist("slots"))
-		{
-			ctx.StartArray("slots");
-
-			for (int i = 0; i < slots.Count(); i++)
-			{
-				ctx.StartObject();
-
-				SlotData slot = new SlotData();
-				ParseSlot(ctx, slot);
-				outOrbat.slots.Insert(slot);
-
-				ctx.EndObject();
+		if (ctx.DoesKeyExist("groups"))
+        {
+			int groupsCount;
+            if(ctx.StartArray("groups", groupsCount)) {
+				
+	            for (int i = 0; i < groupsCount; i++)
+	            {
+	                ctx.StartObject();
+	
+	                UTF_GroupData group = new UTF_GroupData();
+	                UTF_ParseGroup(ctx, group);
+	                outOrbat.groups.Insert(group);
+	
+	                ctx.EndObject();
+	            }
 			}
 
-			ctx.EndArray();
-		}
-
-		if (ctx.DoesKeyExist("callSigns"))
-		{
-			ctx.StartArray("callSigns");
-
-			for (int i = 0; i < callSigns.Count(); i++)
-			{
-				ctx.StartObject();
-
-				CallSignData cs = new CallSignData();
-				ParseCallSign(ctx, cs);
-				outOrbat.callSigns.Insert(cs);
-
-				ctx.EndObject();
-			}
-
-			ctx.EndArray();
-		}
+            ctx.EndArray();
+        }
 
 		return true;
+	}
+
+    bool UTF_ParseMetadata(SCR_JsonLoadContext ctx, out UTF_Metadata outMetadata)
+    {
+        outMetadata = new UTF_Metadata();
+        // @TODO: populate metadata fields once defined
+        return true;
+    }
+	
+	bool UTF_ParsePlayer(SCR_JsonLoadContext ctx, out UTF_PlayerData outPlayer);
+	
+	bool UTF_ParseRole(SCR_JsonLoadContext ctx, out UTF_RoleData outRole);
+
+    bool UTF_ParseSlot(SCR_JsonLoadContext ctx, out UTF_SlotData outSlot)
+    {
+        outSlot = new UTF_SlotData();
+
+        if (!outSlot) {
+            Print("[UTF_ParseSlot] Failed to create UTF_SlotData instance.");
+            return false;
+        }
+
+        ctx.ReadValue("player", outSlot.player);
+        ctx.ReadValue("role", outSlot.role);
+        ctx.ReadValue("isMA", outSlot.isMA);
+        ctx.ReadValue("tierDifference", outSlot.tierDifference);
+        ctx.ReadValue("isLocked", outSlot.isLocked);
+        ctx.ReadValue("isVacant", outSlot.isVacant);
+        ctx.ReadValue("loadout", outSlot.loadout);
+
+        PrintFormat("[UTF_ParseSlot] Parsed slot for player: %1", outSlot.player.playerUTFName);
+
+        return true;
+    }
+
+	void UTF_ParseGroup(SCR_JsonLoadContext ctx, UTF_GroupData group)
+	{
+		ctx.ReadValue("group", group.groupName);
+	
+		if (ctx.DoesKeyExist("radioFrequencies"))
+		{
+			int freqCount;
+			ctx.StartArray("radioFrequencies", freqCount);
+	
+			group.radioFrequencies = new array<float>();
+			for (int i = 0; i < freqCount; i++)
+			{
+				float f;
+				ctx.ReadValue("radioFrequencies", f);
+				group.radioFrequencies.Insert(f);
+			}
+	
+			ctx.EndArray();
+		}
+	
+		if (ctx.DoesKeyExist("slots"))
+		{
+			group.slots = new array<ref UTF_SlotData>();
+	
+			int slotCount;
+			ctx.StartArray("slots", slotCount);
+	
+			for (int i = 0; i < slotCount; i++)
+			{
+				ctx.StartObject();
+	
+				UTF_SlotData slot = new UTF_SlotData();
+				UTF_ParseSlot(ctx, slot);
+				group.slots.Insert(slot);
+	
+				ctx.EndObject();
+			}
+	
+			ctx.EndArray();
+		}
 	}
 
 	void ApplyORBATtoPlayer(int playerID)
 	{
 		// @TODO: implement player ORBAT assignment
-		// mostly pseudocode:
-		string playerGameID = BackendApi.GetPlayerIdentityId(playerID);
+		// automatic, conditional assignment e.g. on-connect, on-respawn
 
 	}
 
-	void ApplyORBATtoAll(ORBATData data, bool nearRPrequired = true)
+	void ApplyORBATtoAll(UTF_ORBATData data, bool nearRPrequired = true)
 	{
 		// @TODO: implement all-players ORBAT assignment
 		// e.g. forced reset
+		// only admin-commanded, never automated
 	}
 }

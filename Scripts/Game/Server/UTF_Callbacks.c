@@ -1,23 +1,26 @@
-class ORBATGetCallback : RestCallback
+class UTF_ORBATGetCallback : RestCallback
 {
-	ref ServerORBATManager m_manager;
-	string m_orbatID;
+	ref UTF_ServerORBATManager m_manager;
+	int m_orbatID;
 	
-	void ORBATGetCallback(ref ServerORBATManager manager, string orbatID)
+	void UTF_ORBATGetCallback(UTF_ServerORBATManager manager, int orbatID)
 	{
 		m_manager = manager;
 		m_orbatID = orbatID;
+		
+		SetOnSuccess(UTF_ORBATSetOnSuccess);
+		SetOnError(UTF_ORBATSetOnError);
 	}
 	
-	override void SetOnSuccess(RestCallback cb)
+	void UTF_ORBATSetOnSuccess(RestCallback cb)
 	{
 		string data = cb.GetData();
 		int dataSize = data.Length();
-		PrintFormat("[OrbatGetCallback] Got ORBAT %1 (size %2)", m_orbatId, dataSize);
-		m_manager.orbatJSON(m_orbatID, data);
+		PrintFormat("[ORBAT Callback] Got ORBAT %1 (size %2)", m_orbatID, dataSize);
+		m_manager.UTF_OnOrbatJson(m_orbatID, data);
 	}
 	
-	override void SetOnError(RestCallback cb)
+	void UTF_ORBATSetOnError(RestCallback cb)
 	{
 		// @TODO: look at possible error codes first
 		

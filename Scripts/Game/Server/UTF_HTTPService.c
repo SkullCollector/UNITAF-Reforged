@@ -10,7 +10,7 @@ class UTF_HTTPService
         }
 
         RestContext ctx = api.GetContext(url);
-        ctx.SetHeader("Accept","application/json");
+        ctx.SetHeaders("Accept, application/json");
         if (!ctx)
         {
             Print("[UTF_HTTPService] Failed to create RestContext for URL: " + url);
@@ -19,7 +19,7 @@ class UTF_HTTPService
         return ctx;
     }
 
-    void ExecuteGet(string url, ref RestCallback cb)
+    void ExecuteGet(string url, RestCallback cb)
     {
         RestContext ctx = GetContext(url);
         if (!ctx)
@@ -30,4 +30,4 @@ class UTF_HTTPService
 
         ctx.GET(cb, "get");
     }
-};
+}
