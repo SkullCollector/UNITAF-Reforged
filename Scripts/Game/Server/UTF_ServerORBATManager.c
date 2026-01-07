@@ -127,11 +127,6 @@ class UTF_ServerORBATManager
     {
         outSlot = new UTF_SlotData();
 
-        if (!outSlot) {
-            Print("[UTF_ParseSlot] Failed to create UTF_SlotData instance.");
-            return false;
-        }
-
         if (ctx.DoesObjectExist("player"))
         {
             ctx.StartObject("player");
